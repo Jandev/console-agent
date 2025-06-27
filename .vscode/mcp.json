@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "search_sk_repo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@buger/docs-mcp@latest",
+        "--gitUrl",
+        "https://github.com/microsoft/semantic-kernel",
+        "--toolName",
+        "search_sk_repo",
+        "--toolDescription",
+        "Search Semantic Kernel repository"
+      ]
+    }
+  }
+}
