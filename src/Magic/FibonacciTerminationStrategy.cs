@@ -50,6 +50,31 @@ internal class FibonacciTerminationStrategy : TerminationStrategy
         // Terminate if both agents have responded at least once
         bool bothAgentsResponded = respondingAgents.Count >= 2;
 
+        // For general questions, one response from GeneralAssistant might be sufficient
+        bool generalAssistantResponded = respondingAgents.Any(name => name == "GeneralAssistant");
+        
+        // If only GeneralAssistant responded and it's a complete answer, terminate
+        if (generalAssistantResponded && agentMessages.Count >= 1)
+        {
+            var recentMessage = history.LastOrDefault();
+            if (recentMessage?.Role == AuthorRole.Assistant)
+            {
+                var content = recentMessage.Content?.ToLowerInvariant() ?? "";
+                
+                // If it's a redirection to Fibonacci specialists, don't terminate yet
+                if (content.Contains("fibonacci") && (content.Contains("specialist") || content.Contains("generalassistant")))
+                {
+                    return Task.FromResult(false);
+                }
+                
+                // If it's a substantial general answer, terminate
+                if (content.Length > 50 && !content.Contains("fibonacci question"))
+                {
+                    return Task.FromResult(true);
+                }
+            }
+        }
+
         // Also check if the last response contains indicators of completion
         var lastMessage = history.LastOrDefault();
         if (lastMessage?.Role == AuthorRole.Assistant)
@@ -98,6 +123,11 @@ internal class FibonacciTerminationStrategy : TerminationStrategy
         if (authorName.Contains("Validator") || authorName.Contains("FibonacciValidator"))
         {
             return "Validator";
+        }
+
+        if (authorName.Contains("GeneralAssistant") || authorName.Contains("General"))
+        {
+            return "GeneralAssistant";
         }
 
         return authorName;

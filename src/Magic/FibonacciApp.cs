@@ -61,10 +61,14 @@ internal class FibonacciApp : IApp
         Console.WriteLine("• Validate sequences (e.g., 'Is this sequence correct: 0, 1, 1, 2, 3, 5?')");
         Console.WriteLine("• Check individual numbers (e.g., 'Is 89 a Fibonacci number?')");
         Console.WriteLine("• Explain the Fibonacci sequence");
+        Console.WriteLine("• Answer general questions (I'll use my knowledge to help with any topic!)");
         Console.WriteLine("\nType 'exit' to quit.\n");
 
-        // Create an AgentGroupChat with both agents
-        var agentGroupChat = new AgentGroupChat(generatorAgent, validatorAgent)
+        // Create a general assistant agent for non-Fibonacci questions
+        var generalAgent = CreateGeneralAssistantAgent(CreateKernel());
+
+        // Create an AgentGroupChat with all agents
+        var agentGroupChat = new AgentGroupChat(generatorAgent, validatorAgent, generalAgent)
         {
             ExecutionSettings = new()
             {
@@ -116,7 +120,9 @@ internal class FibonacciApp : IApp
 #pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
                 
                 // Add emoji based on agent name for better UX
-                var emoji = agentName.Contains("Generator") ? "🔢" : "✅";
+                var emoji = agentName.Contains("Generator") ? "🔢" : 
+                           agentName.Contains("Validator") ? "✅" : 
+                           agentName.Contains("GeneralAssistant") ? "🤖" : "💬";
                 
                 if (!string.IsNullOrEmpty(content))
                 {
@@ -148,6 +154,17 @@ internal class FibonacciApp : IApp
         {
             Name = "FibonacciValidator", 
             Instructions = FibonacciAgentInstructions.ValidatorInstructions,
+            Kernel = kernel,
+            Arguments = new KernelArguments()
+        };
+    }
+
+    private ChatCompletionAgent CreateGeneralAssistantAgent(Kernel kernel)
+    {
+        return new ChatCompletionAgent
+        {
+            Name = "GeneralAssistant",
+            Instructions = FibonacciAgentInstructions.GeneralAssistantInstructions,
             Kernel = kernel,
             Arguments = new KernelArguments()
         };
