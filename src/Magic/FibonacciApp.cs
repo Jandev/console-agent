@@ -5,6 +5,8 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 
+#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+
 namespace Magic;
 
 /// <summary>
@@ -53,85 +55,79 @@ internal class FibonacciApp : IApp
 
     private async Task RunInteractiveSessionAsync(ChatCompletionAgent generatorAgent, ChatCompletionAgent validatorAgent)
     {
-        Console.WriteLine("\n=== Fibonacci Multi-Agent Workflow ===");
-        Console.WriteLine("Available commands:");
-        Console.WriteLine("- 'generate' - Generate first 10 Fibonacci numbers");
-        Console.WriteLine("- 'validate' - Validate the generated sequence");
-        Console.WriteLine("- 'both' - Generate and validate");
-        Console.WriteLine("- 'exit' - Exit the application");
+        Console.WriteLine("\n=== Fibonacci Multi-Agent Assistant ===");
+        Console.WriteLine("Ask me anything about Fibonacci numbers! I can:");
+        Console.WriteLine("• Generate Fibonacci sequences (e.g., 'What are the first 8 Fibonacci numbers?')");
+        Console.WriteLine("• Validate sequences (e.g., 'Is this sequence correct: 0, 1, 1, 2, 3, 5?')");
+        Console.WriteLine("• Check individual numbers (e.g., 'Is 89 a Fibonacci number?')");
+        Console.WriteLine("• Explain the Fibonacci sequence");
+        Console.WriteLine("\nType 'exit' to quit.\n");
+
+        // Create an AgentGroupChat with both agents
+        var agentGroupChat = new AgentGroupChat(generatorAgent, validatorAgent)
+        {
+            ExecutionSettings = new()
+            {
+                // Terminate after each agent responds once to give a complete answer
+                TerminationStrategy = new FibonacciTerminationStrategy()
+                {
+                    MaximumIterations = 10, // Allow up to 10 interactions between agents
+                    AutomaticReset = true // Reset after each user question
+                }
+            }
+        };
 
         string? userInput;
-        string? fibonacciSequence = null;
 
         do
         {
-            Console.Write("\nWhat would you like to do? ");
-            userInput = Console.ReadLine()?.Trim().ToLowerInvariant();
+            Console.Write("You: ");
+            userInput = Console.ReadLine()?.Trim();
 
-            switch (userInput)
+            if (string.IsNullOrEmpty(userInput) || userInput.Equals("exit", StringComparison.OrdinalIgnoreCase))
             {
-                case "generate":
-                    fibonacciSequence = await GenerateFibonacciAsync(generatorAgent);
-                    break;
-
-                case "validate":
-                    if (!string.IsNullOrEmpty(fibonacciSequence))
-                    {
-                        await ValidateFibonacciAsync(validatorAgent, fibonacciSequence);
-                    }
-                    else
-                    {
-                        Console.WriteLine("No sequence to validate. Generate a sequence first.");
-                    }
-                    break;
-
-                case "both":
-                    fibonacciSequence = await GenerateFibonacciAsync(generatorAgent);
-                    if (!string.IsNullOrEmpty(fibonacciSequence))
-                    {
-                        await ValidateFibonacciAsync(validatorAgent, fibonacciSequence);
-                    }
-                    break;
-
-                case "exit":
-                    Console.WriteLine("Goodbye!");
-                    break;
-
-                default:
-                    Console.WriteLine("Invalid command. Please try again.");
-                    break;
+                if (userInput?.Equals("exit", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    Console.WriteLine("\nGoodbye! Thanks for exploring Fibonacci numbers with me! 🔢");
+                }
+                continue;
             }
 
-        } while (userInput != "exit");
+            await ProcessUserQuestionAsync(agentGroupChat, userInput);
+
+        } while (userInput != null && !userInput.Equals("exit", StringComparison.OrdinalIgnoreCase));
     }
 
-    private async Task<string?> GenerateFibonacciAsync(ChatCompletionAgent generatorAgent)
+    private async Task ProcessUserQuestionAsync(AgentGroupChat agentGroupChat, string question)
     {
-        Console.WriteLine("\n🔢 Generating Fibonacci sequence...");
-
-        var request = "Generate the first 10 numbers of the Fibonacci sequence using the GenerateFibonacci function.";
-        string? sequence = null;
-
-        await foreach (var response in generatorAgent.InvokeAsync(request))
+        try
         {
-            var content = response.Message?.Content ?? "";
-            Console.WriteLine($"Generator: {content}");
-            sequence = content;
+            // Add the user message to the chat
+            agentGroupChat.AddChatMessage(new ChatMessageContent(AuthorRole.User, question));
+
+            Console.WriteLine();
+
+            // Let the agents collaborate to answer the question
+            await foreach (var response in agentGroupChat.InvokeAsync())
+            {
+                var content = response.Content ?? "";
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+                var agentName = response.AuthorName ?? "Agent";
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates.
+                
+                // Add emoji based on agent name for better UX
+                var emoji = agentName.Contains("Generator") ? "🔢" : "✅";
+                
+                if (!string.IsNullOrEmpty(content))
+                {
+                    Console.WriteLine($"{agentName} {emoji}: {content}");
+                }
+            }
         }
-
-        return sequence;
-    }
-
-    private async Task ValidateFibonacciAsync(ChatCompletionAgent validatorAgent, string sequence)
-    {
-        Console.WriteLine("\n✅ Validating Fibonacci sequence...");
-
-        var validationRequest = $"Validate if this is a correct Fibonacci sequence using the ValidateFibonacci function: {sequence}";
-
-        await foreach (var response in validatorAgent.InvokeAsync(validationRequest))
+        catch (Exception ex)
         {
-            var content = response.Message?.Content ?? "";
-            Console.WriteLine($"Validator: {content}");
+            Console.WriteLine($"Sorry, I encountered an error: {ex.Message}");
+            _logger.LogError(ex, "Error processing user question: {Question}", question);
         }
     }
 
