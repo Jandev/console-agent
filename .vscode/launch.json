@@ -1,0 +1,22 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug Magic Console App",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build",
+			"program": "${workspaceFolder}/src/Magic/bin/Debug/net9.0/Magic.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/src/Magic",
+			"console": "integratedTerminal",
+			"stopAtEntry": false,
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"name": "Attach to .NET Process",
+			"type": "coreclr",
+			"request": "attach"
+		}
+	]
+}
