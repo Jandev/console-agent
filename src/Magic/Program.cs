@@ -21,8 +21,10 @@ var host = Host.CreateDefaultBuilder(args)
             logging.ClearProviders();
             logging.AddConsole();
         });
-        services.AddTransient<IApp, HelloWorld>();
-        services.AddTransient<FibonacciApp>();
+        
+        // Register IApp implementations with keys
+        services.AddKeyedTransient<IApp, HelloWorld>("hello");
+        services.AddKeyedTransient<IApp, FibonacciApp>("fibonacci");
     })
     .Build();
 
@@ -34,15 +36,9 @@ Console.Write("Enter your choice (1 or 2): ");
 
 var choice = Console.ReadLine();
 
-IApp app;
-if (choice == "2")
-{
-    app = host.Services.GetRequiredService<FibonacciApp>();
-}
-else
-{
-    app = host.Services.GetRequiredService<IApp>();
-}
+// Get the appropriate app implementation using keyed services
+var serviceKey = choice == "2" ? "fibonacci" : "hello";
+var app = host.Services.GetRequiredKeyedService<IApp>(serviceKey);
 
 app.Run();
 
