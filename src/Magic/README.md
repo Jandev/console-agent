@@ -50,9 +50,20 @@ graph TD
 - **GetFibonacciString(count)**: Returns formatted string of Fibonacci numbers
 - **IsFibonacciNumber(number)**: Checks if a number is a Fibonacci number
 
+## Setup
+
+### Azure OpenAI Configuration
+
+Before running the application, you'll need to configure Azure OpenAI settings. See the [Azure OpenAI Setup Guide](AZURE_OPENAI_SETUP.md) for detailed instructions on:
+
+- Setting up your Azure OpenAI service
+- Configuring API keys and endpoints
+- Updating the `appsettings.json` file
+
 ## Usage
 
 1. Build and run the application:
+
    ```bash
    dotnet build
    dotnet run
@@ -68,7 +79,7 @@ graph TD
 
 ## Example Interaction
 
-```
+```text
 === Fibonacci Multi-Agent Workflow ===
 Available commands:
 - 'generate' - Generate first 10 Fibonacci numbers

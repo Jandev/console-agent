@@ -1,11 +1,21 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Magic;
 
 var host = Host.CreateDefaultBuilder(args)
+    .ConfigureAppConfiguration((context, config) =>
+    {
+        config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+        config.AddUserSecrets<Program>();
+    })
     .ConfigureServices((context, services) =>
     {
+        // Configure Azure OpenAI settings
+        services.Configure<AzureOpenAISettings>(
+            context.Configuration.GetSection(AzureOpenAISettings.SectionName));
+        
         services.AddLogging(logging =>
         {
             logging.ClearProviders();

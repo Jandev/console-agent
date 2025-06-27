@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -12,10 +13,12 @@ namespace Magic;
 internal class FibonacciApp : IApp
 {
     private readonly ILogger<FibonacciApp> _logger;
+    private readonly AzureOpenAISettings _azureOpenAISettings;
 
-    public FibonacciApp(ILogger<FibonacciApp> logger)
+    public FibonacciApp(ILogger<FibonacciApp> logger, IOptions<AzureOpenAISettings> azureOpenAISettings)
     {
         _logger = logger;
+        _azureOpenAISettings = azureOpenAISettings.Value;
     }
 
     public void Run()
@@ -156,10 +159,29 @@ internal class FibonacciApp : IApp
 
     private Kernel CreateKernel()
     {
+        // Validate configuration
+        if (string.IsNullOrEmpty(_azureOpenAISettings.Endpoint))
+        {
+            throw new InvalidOperationException("Azure OpenAI Endpoint is not configured. Please check your appsettings.json file.");
+        }
+        
+        if (string.IsNullOrEmpty(_azureOpenAISettings.DeploymentName))
+        {
+            throw new InvalidOperationException("Azure OpenAI DeploymentName is not configured. Please check your appsettings.json file.");
+        }
+        
+        if (string.IsNullOrEmpty(_azureOpenAISettings.ApiKey))
+        {
+            throw new InvalidOperationException("Azure OpenAI ApiKey is not configured. Please run: dotnet user-secrets set \"AzureOpenAI:ApiKey\" \"your-api-key-here\"");
+        }
+
         var builder = Kernel.CreateBuilder();
 
-        // Add chat completion service (using our mock for demo)
-        builder.Services.AddSingleton<IChatCompletionService, MockChatCompletionService>();
+        // Add Azure OpenAI chat completion service
+        builder.Services.AddAzureOpenAIChatCompletion(
+            deploymentName: _azureOpenAISettings.DeploymentName,
+            endpoint: _azureOpenAISettings.Endpoint,
+            apiKey: _azureOpenAISettings.ApiKey);
 
         // Add plugins for Fibonacci operations
         var fibonacciPlugin = KernelPluginFactory.CreateFromType<FibonacciPlugin>();
